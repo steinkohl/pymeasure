@@ -14,3 +14,4 @@ This section contains specific documentation on the Siglent Technologies instrum
    siglent_spd1305x
    siglent_sds1072cml
    siglent_sds1000xhd
+   siglent_ssa3032xr
