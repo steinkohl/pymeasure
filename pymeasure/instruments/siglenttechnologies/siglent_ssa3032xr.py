@@ -28,6 +28,8 @@ from pymeasure.instruments import Channel, Instrument, SCPIMixin
 from pymeasure.instruments.validators import strict_discrete_set, strict_range
 
 _TRACE_MODES = ["WRITE", "MAXHOLD", "MINHOLD", "VIEW", "BLANK", "AVERAGE"]
+_RESOLUTION_BANDWIDTHS = [10, 30, 100, 300, 1e3, 3e3, 10e3, 30e3, 100e3, 300e3, 1e6]
+_VIDEO_BANDWIDTHS = [1, 3, *_RESOLUTION_BANDWIDTHS]
 _AMPLITUDE_UNITS = ["DBM", "DBMV", "DBUV", "V", "W"]
 
 
@@ -54,7 +56,7 @@ class Marker(Channel):
 
     def peak_search(self):
         """Move the marker to the maximum of the trace."""
-        self.write(":CALCulate:MARKer{ch}:MAXimum:MAX")
+        self.write(":CALCulate:MARKer{ch}:MAXimum")
 
 
 class Trace(Channel):
@@ -101,7 +103,6 @@ class SSA3032XR(SCPIMixin, Instrument):
     marker_4 = Instrument.ChannelCreator(Marker, 4)
 
     freq_limits = [0, 3.2e9]
-    sweep_points_limits = [101, 3001]
     trace_numbers = [1, 2, 3, 4]
 
     def __init__(self, adapter, name="Siglent SSA3032X-R Spectrum Analyzer", **kwargs):
@@ -144,14 +145,14 @@ class SSA3032XR(SCPIMixin, Instrument):
     # Bandwidth and sweep --------------------------------------------------------------------
 
     resolution_bandwidth = Instrument.control(
-        ":BANDwidth:RESolution?", ":BANDwidth:RESolution %g",
-        """Control the resolution bandwidth in Hz (float strictly from 10 to 1e6).""",
-        validator=strict_range,
-        values=[10, 1e6],
+        ":BWIDth:RESolution?", ":BWIDth:RESolution %g",
+        """Control the resolution bandwidth in Hz (strictly 10, 30, 100, 300 ... 300e3, 1e6).""",
+        validator=strict_discrete_set,
+        values=_RESOLUTION_BANDWIDTHS,
     )
 
     resolution_bandwidth_auto = Instrument.control(
-        ":BANDwidth:RESolution:AUTO?", ":BANDwidth:RESolution:AUTO %d",
+        ":BWIDth:RESolution:AUTO?", ":BWIDth:RESolution:AUTO %d",
         """Control whether the resolution bandwidth is coupled automatically (bool).""",
         validator=strict_discrete_set,
         values={True: 1, False: 0},
@@ -159,14 +160,14 @@ class SSA3032XR(SCPIMixin, Instrument):
     )
 
     video_bandwidth = Instrument.control(
-        ":BANDwidth:VIDeo?", ":BANDwidth:VIDeo %g",
-        """Control the video bandwidth in Hz (float strictly from 1 to 3e6).""",
-        validator=strict_range,
-        values=[1, 3e6],
+        ":BWIDth:VIDeo?", ":BWIDth:VIDeo %g",
+        """Control the video bandwidth in Hz (strictly 1, 3, 10, 30 ... 300e3, 1e6).""",
+        validator=strict_discrete_set,
+        values=_VIDEO_BANDWIDTHS,
     )
 
     video_bandwidth_auto = Instrument.control(
-        ":BANDwidth:VIDeo:AUTO?", ":BANDwidth:VIDeo:AUTO %d",
+        ":BWIDth:VIDeo:AUTO?", ":BWIDth:VIDeo:AUTO %d",
         """Control whether the video bandwidth is coupled automatically (bool).""",
         validator=strict_discrete_set,
         values={True: 1, False: 0},
@@ -175,9 +176,9 @@ class SSA3032XR(SCPIMixin, Instrument):
 
     sweep_time = Instrument.control(
         ":SWEep:TIME?", ":SWEep:TIME %g",
-        """Control the sweep time in s (float strictly from 1e-5 to 1.5e3).""",
+        """Control the sweep time in s (float strictly from 917e-6 to 1000).""",
         validator=strict_range,
-        values=[1e-5, 1.5e3],
+        values=[917e-6, 1000],
     )
 
     sweep_time_auto = Instrument.control(
@@ -186,14 +187,6 @@ class SSA3032XR(SCPIMixin, Instrument):
         validator=strict_discrete_set,
         values={True: 1, False: 0},
         map_values=True,
-    )
-
-    sweep_points = Instrument.control(
-        ":SWEep:POINts?", ":SWEep:POINts %d",
-        """Control the number of points per sweep (int strictly from 101 to 3001).""",
-        validator=strict_range,
-        values=sweep_points_limits,
-        cast=int,
     )
 
     continuous_sweep_enabled = Instrument.control(
@@ -235,9 +228,9 @@ class SSA3032XR(SCPIMixin, Instrument):
 
     attenuation = Instrument.control(
         ":POWer:ATTenuation?", ":POWer:ATTenuation %d",
-        """Control the input attenuation in dB (int strictly from 0 to 51).""",
+        """Control the input attenuation in dB (int strictly from 0 to 50).""",
         validator=strict_discrete_set,
-        values=range(52),
+        values=range(51),
         cast=int,
     )
 
@@ -266,7 +259,7 @@ class SSA3032XR(SCPIMixin, Instrument):
         :return: 2d numpy array ``[frequency in Hz, amplitude]`` in the current amplitude unit.
         """
         trace = strict_discrete_set(trace, self.trace_numbers)
-        self.write(":FORMat:TRACe:DATA ASCii")
+        self.write(":FORMat ASCii")
         amplitude = np.array(self.values(f":TRACe:DATA? {trace}"), dtype=float)
         frequency = np.linspace(self.freq_start, self.freq_stop, len(amplitude))
         return np.array([frequency, amplitude])

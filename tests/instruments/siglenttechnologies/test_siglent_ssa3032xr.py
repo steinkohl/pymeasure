@@ -47,21 +47,31 @@ def test_freq_span_out_of_range():
 def test_resolution_bandwidth_auto():
     with expected_protocol(
         SSA3032XR,
-        [(":BANDwidth:RESolution:AUTO 1", None),
-         (":BANDwidth:RESolution:AUTO?", "1")],
+        [(":BWIDth:RESolution:AUTO 1", None),
+         (":BWIDth:RESolution:AUTO?", "1")],
     ) as inst:
         inst.resolution_bandwidth_auto = True
         assert inst.resolution_bandwidth_auto is True
 
 
-def test_sweep_points():
+def test_resolution_bandwidth():
     with expected_protocol(
         SSA3032XR,
-        [(":SWEep:POINts 751", None),
-         (":SWEep:POINts?", "751")],
+        [(":BWIDth:RESolution 1000", None),
+         (":BWIDth:RESolution?", "1000")],
     ) as inst:
-        inst.sweep_points = 751
-        assert inst.sweep_points == 751
+        inst.resolution_bandwidth = 1e3
+        assert inst.resolution_bandwidth == 1e3
+
+
+def test_resolution_bandwidth_not_discrete():
+    with expected_protocol(SSA3032XR, []) as inst, pytest.raises(ValueError):
+        inst.resolution_bandwidth = 2e3
+
+
+def test_attenuation_out_of_range():
+    with expected_protocol(SSA3032XR, []) as inst, pytest.raises(ValueError):
+        inst.attenuation = 51
 
 
 def test_single_sweep():
@@ -107,7 +117,7 @@ def test_trace_mode():
 def test_read_trace():
     with expected_protocol(
         SSA3032XR,
-        [(":FORMat:TRACe:DATA ASCii", None),
+        [(":FORMat ASCii", None),
          (":TRACe:DATA? 1", "-50.0,-40.0,-60.0"),
          (":FREQuency:STARt?", "0"),
          (":FREQuency:STOP?", "100")],
@@ -120,7 +130,7 @@ def test_marker_peak_search():
     with expected_protocol(
         SSA3032XR,
         [(":CALCulate:MARKer1:STATe 1", None),
-         (":CALCulate:MARKer1:MAXimum:MAX", None),
+         (":CALCulate:MARKer1:MAXimum", None),
          (":CALCulate:MARKer1:X?", "1000000"),
          (":CALCulate:MARKer1:Y?", "-12.5")],
     ) as inst:
