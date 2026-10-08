@@ -138,3 +138,49 @@ def test_marker_peak_search():
         inst.marker_1.peak_search()
         assert inst.marker_1.x == 1e6
         assert inst.marker_1.y == -12.5
+
+
+def test_id():
+    with expected_protocol(
+        SSA3032XR,
+        [("*IDN?", "Siglent Technologies,SSA3032,1234567890,100.01.01.06.01")],
+    ) as inst:
+        assert inst.id == "Siglent Technologies,SSA3032,1234567890,100.01.01.06.01"
+
+
+def test_reset():
+    with expected_protocol(SSA3032XR, [("*RST", None)]) as inst:
+        inst.reset()
+
+
+def test_trigger_source():
+    with expected_protocol(
+        SSA3032XR,
+        [(":TRIGger:SOURce EXTernal", None),
+         (":TRIGger:SOURce?", "EXTernal"),
+         (":TRIGger:SOURce IMMediate", None),
+         (":TRIGger:SOURce?", "IMMediate")],
+    ) as inst:
+        inst.trigger_source = "external"
+        assert inst.trigger_source == "external"
+        inst.trigger_source = "internal"
+        assert inst.trigger_source == "internal"
+
+
+def test_trigger_source_invalid():
+    with expected_protocol(SSA3032XR, []) as inst, pytest.raises(ValueError):
+        inst.trigger_source = "video"
+
+
+def test_shutdown():
+    with expected_protocol(
+        SSA3032XR,
+        [(":INITiate:CONTinuous 1", None),
+         (":TRIGger:SOURce IMMediate", None)],
+    ) as inst:
+        inst.shutdown()
+
+
+def test_power_off():
+    with expected_protocol(SSA3032XR, [(":SYSTem:POWer:OFF", None)]) as inst:
+        inst.power_off()

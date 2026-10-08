@@ -250,6 +250,32 @@ class SSA3032XR(SCPIMixin, Instrument):
         map_values=True,
     )
 
+    # Trigger --------------------------------------------------------------------------------
+
+    trigger_source = Instrument.control(
+        ":TRIGger:SOURce?", ":TRIGger:SOURce %s",
+        """Control the trigger source (strictly 'internal' for free run or 'external').""",
+        validator=strict_discrete_set,
+        values=["internal", "external"],
+        set_process=lambda v: {"internal": "IMMediate", "external": "EXTernal"}[v],
+        cast=str,
+        # The reply may be in short or long form; 'video' can only be set on the front panel
+        get_process=lambda v: {"IMM": "internal", "EXT": "external"}.get(
+            v.strip().upper()[:3], v.strip().lower()),
+    )
+
+    # System ---------------------------------------------------------------------------------
+
+    def power_off(self):
+        """Turn off the instrument."""
+        self.write(":SYSTem:POWer:OFF")
+
+    def shutdown(self):
+        """Bring the instrument to a safe state: continuous sweep and internal trigger."""
+        self.continuous_sweep_enabled = True
+        self.trigger_source = "internal"
+        super().shutdown()
+
     # Traces ---------------------------------------------------------------------------------
 
     def read_trace(self, trace=1):
